@@ -126,6 +126,35 @@ def trackFace(info, w, pid, px_error, py_error):
     print(f"fb={fb} x_speed={x_speed} y_speed={y_speed}")
     return x_error, y_error
 
+def circle_motion(radius, speed, duration):
+    """
+    Makes the drone perform a circular motion with a specified radius.
+    
+    Parameters:
+    - radius: The radius of the circle in centimeters.
+    - speed: The forward speed in cm/s.
+    - duration: The time in seconds for which the motion should be performed.
+    """
+    # Calculate yaw rotation speed based on radius and forward speed
+    angular_velocity = speed / radius  # rad/s
+    yaw_speed = int(np.degrees(angular_velocity))  # convert to degrees per second
+
+    print(f"Starting circle motion with radius={radius} cm, speed={speed} cm/s, yaw_speed={yaw_speed} deg/s")
+
+    start_time = time.time()
+
+    while time.time() - start_time < duration:
+        # Move forward while rotating
+        me.send_rc_control(0, speed, 0, yaw_speed)
+        time.sleep(0.1)  # Send control at intervals to maintain smooth motion
+
+    # Stop the drone after the circle motion
+    me.send_rc_control(0, 0, 0, 0)
+    print("Circle motion completed.")
+    
+# # Example usage: Perform a circular motion with a 100 cm radius, 20 cm/s speed, for 10 seconds
+# circle_motion(radius=100, speed=20, duration=10)
+
 px_error = 0
 py_error = 0
 
