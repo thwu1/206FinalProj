@@ -14,7 +14,7 @@ me.takeoff()
 me.send_rc_control(0, 0, 25, 0)
 
 w, h = 960, 720
-fbRange = [6200, 6800]
+fbRange = [14000, 15000]
 
 pid = [0.2, 0.04, 0.005]
 INDEX = 0
