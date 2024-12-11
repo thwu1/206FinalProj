@@ -160,7 +160,7 @@ def circle_motion(drone, speed, yaw_speed, duration):
         drone.send_rc_control(0, 0, 0, 0)
         
     # # Example usage of circle_motion in main:
-    # circle_motion(drone, speed=-30, yaw_speed=-35, duration=24)  # Adjust speed, yaw speed, and duration as needed
+    # circle_motion(me, speed=-30, yaw_speed=-35, duration=24)  # Adjust speed, yaw speed, and duration as needed
 
 px_error = 0
 py_error = 0
