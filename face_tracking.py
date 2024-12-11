@@ -126,34 +126,41 @@ def trackFace(info, w, pid, px_error, py_error):
     print(f"fb={fb} x_speed={x_speed} y_speed={y_speed}")
     return x_error, y_error
 
-def circle_motion(radius, speed, duration):
+def circle_motion(drone, speed, yaw_speed, duration):
     """
-    Makes the drone perform a circular motion with a specified radius.
-    
-    Parameters:
-    - radius: The radius of the circle in centimeters.
-    - speed: The forward speed in cm/s.
-    - duration: The time in seconds for which the motion should be performed.
-    """
-    # Calculate yaw rotation speed based on radius and forward speed
-    angular_velocity = speed / radius  # rad/s
-    yaw_speed = int(np.degrees(angular_velocity))  # convert to degrees per second
+    Perform a circular motion with the Tello drone.
 
-    print(f"Starting circle motion with radius={radius} cm, speed={speed} cm/s, yaw_speed={yaw_speed} deg/s")
+    Args:
+        drone (Tello): The Tello drone instance.
+        speed (int): Linear speed in cm/s.
+        yaw_speed (int): Yaw rotation speed in degrees per second.
+        duration (int): Duration of the motion in seconds.
+    """
+    print(f"Starting circular motion with speed={speed} cm/s, yaw_speed={yaw_speed} deg/s, and duration={duration} seconds")
 
     start_time = time.time()
 
-    while time.time() - start_time < duration:
-        # Move forward while rotating
-        me.send_rc_control(0, speed, 0, yaw_speed)
-        time.sleep(0.1)  # Send control at intervals to maintain smooth motion
+    try:
+        while time.time() - start_time < duration:
+            # Check if "q" is pressed to stop
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                print("[DEBUG] 'q' pressed, stopping and landing...")
+                break
 
-    # Stop the drone after the circle motion
-    me.send_rc_control(0, 0, 0, 0)
-    print("Circle motion completed.")
-    
-# # Example usage: Perform a circular motion with a 100 cm radius, 20 cm/s speed, for 10 seconds
-# circle_motion(radius=100, speed=20, duration=10)
+            # Send RC control commands: move forward and yaw
+            drone.send_rc_control(speed, 0, 0, yaw_speed)
+            time.sleep(0.05)  # Maintain smooth control by sending commands frequently
+
+    except Exception as e:
+        print(f"[ERROR] An error occurred during circular motion: {e}")
+
+    finally:
+        # Stop the motion
+        print("[DEBUG] Stopping drone...")
+        drone.send_rc_control(0, 0, 0, 0)
+        
+    # # Example usage of circle_motion in main:
+    # circle_motion(drone, speed=-30, yaw_speed=-35, duration=24)  # Adjust speed, yaw speed, and duration as needed
 
 px_error = 0
 py_error = 0
