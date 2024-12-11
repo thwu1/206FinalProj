@@ -3,6 +3,7 @@ import numpy as np
 from djitellopy import Tello
 import time
 from collections import deque
+import pickle
 
 me = Tello()
 me.connect()
@@ -16,6 +17,7 @@ w, h = 960, 720
 fbRange = [6200, 6800]
 
 pid = [0.2, 0.04, 0.005]
+INDEX = 0
 
 def findFace(img):
     faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
@@ -41,18 +43,9 @@ def findFace(img):
 
 x_error_queue = deque(maxlen=100)
 y_error_queue = deque(maxlen=100)
-# in_camera = deque(maxlen=50)
-
-# for _ in range(50):
-#     in_camera.append(1)
-
-# p_ls = []
-# i_ls = []
-# d_ls = []
-
 center_coords_queue = deque(maxlen=20)
-TURN = ["+"]
 
+TURN = ["+"]
 def trackFace(info, w, pid, px_error, py_error):
     area = info[1]
     x, y = info[0]
@@ -63,23 +56,18 @@ def trackFace(info, w, pid, px_error, py_error):
             TURN[0] = "-"
         else:
             TURN[0] = "+"
-    # print(x)
     x_error = x - w // 2
     y_error = y - h // 4
 
     if x == 0 or y == 0:
         x_error = 0
         y_error = 0
-    
+
     print(x,y)
     print(x_error, y_error)
-
     x_speed = (
         pid[0] * x_error + pid[1] * (x_error - px_error) + pid[2] * sum(x_error_queue)
     )
-    # p_ls.append(pid[0] * x_error)
-    # i_ls.append(pid[2] * sum(x_error_queue))
-    # d_ls.append(pid[1] * (x_error - px_error))
 
     x_speed = int(np.clip(x_speed, -100, 100))
 
@@ -102,15 +90,12 @@ def trackFace(info, w, pid, px_error, py_error):
 
     if x == 0 or y == 0:
         if sum([1 for x, y in center_coords_queue if x == 0 and y == 0]) > 15:
-            # print(TURN[0])
-            # pass
             if TURN[0] == "+":
                 me.send_rc_control(0, 0, 0, 40)
             else:
                 me.send_rc_control(0, 0, 0, -40)
         else:
             me.send_rc_control(0, 0, 0, 0)
-
         x_error = 0
         y_error = 0
         x_speed = 0
@@ -158,19 +143,38 @@ def circle_motion(drone, speed, yaw_speed, duration):
         # Stop the motion
         print("[DEBUG] Stopping drone...")
         drone.send_rc_control(0, 0, 0, 0)
+        time.sleep(0.1)
         
     # # Example usage of circle_motion in main:
     # circle_motion(me, speed=-30, yaw_speed=-35, duration=24)  # Adjust speed, yaw speed, and duration as needed
+
+def read_sensor_and_perform_action():
+    with open("cache.pkl", "rb") as file:
+        allSnaps = pickle.load(file)
+    global INDEX
+    if len(allSnaps)>INDEX:
+        print("current command:", allSnaps[INDEX])
+        Command = allSnaps[INDEX]
+        INDEX +=1
+        execute_command(Command)
+
+def execute_command(command):
+    print("executing command:", command)
+    if command == 1:
+        print("Yield to circle motion")
+        circle_motion(me, speed=-30, yaw_speed=20, duration=24)
+        print("Circle motion done")
+    else:
+        pass
 
 px_error = 0
 py_error = 0
 
 while True:
     img = me.get_frame_read().frame
-    # print(f"Image shape: {img.shape}")  # Will print height, width, channels
-    # img = cv2.resize(img, (w, h))
     img, info = findFace(img)
     px_error, py_error = trackFace(info, w, pid, px_error, py_error)
+    read_sensor_and_perform_action()
     cv2.imshow("Output", img)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
